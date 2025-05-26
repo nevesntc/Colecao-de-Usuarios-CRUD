@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUD </title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f7f6; color: #333; }
+        .container { margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background-color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1, h2 { color: #0056b3; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="number"] { margin-bottom: 10px; padding: 10px; width: calc(100% - 22px); border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 4px; margin-right: 5px; }
+        button:hover { background-color: #0056b3; }
+        button.delete-btn { background-color: #dc3545; }
+        button.delete-btn:hover { background-color: #c82333; }
+        #listaUsuarios { margin-top: 10px; }
+        .usuario { border-bottom: 1px solid #eee; padding: 8px 0; display: flex; justify-content: space-between; align-items: center; }
+        .usuario span { flex-grow: 1; }
+        pre { background-color: #e9ecef; padding: 10px; border: 1px solid #ddd; border-radius: 4px; white-space: pre-wrap; word-break: break-all; }
+        .mensagem { padding: 10px; margin-top: 10px; border-radius: 4px; }
+        .mensagem.sucesso { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .mensagem.erro { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <h1>Criação de usuários</h1>
+
+    <div class="container">
+        <h2>Adicionar Novo Usuário</h2>
+        <form id="formAdicionarUsuario">
+            <div>
+                <label for="nome">Nome:</label>
+                <input type="text" id="nome" name="nome" required>
+            </div>
+            <div>
+                <label for="idade">Idade:</label>
+                <input type="number" id="idade" name="idade" required>
+            </div>
+            <button type="submit">Adicionar Usuário</button>
+        </form>
+        <div id="mensagemAdicionar" class="mensagem" style="display:none;"></div>
+    </div>
+
+    <div class="container">
+        <h2>Criar Dados de Exemplo</h2>
+        <p>Clique para adicionar um conjunto de usuários de exemplo (João, Maria, Pedro).</p>
+        <button id="btnCriarDadosExemplo">Criar Dados de Exemplo</button>
+        <div id="mensagemCriarExemplo" class="mensagem" style="display:none;"></div>
+    </div>
+
+    <div class="container">
+        <h2>Listar Usuários</h2>
+        <button id="btnListarUsuarios">Listar/Atualizar Usuários</button>
+        <div id="listaUsuarios">
+            <p>Clique em "Listar/Atualizar Usuários" para ver os dados.</p>
+        </div>
+        <div id="mensagemListar" class="mensagem" style="display:none;"></div>
+    </div>
+
+    <script>
+        const formAdicionarUsuario = document.getElementById('formAdicionarUsuario');
+        const mensagemAdicionarDiv = document.getElementById('mensagemAdicionar');
+        const mensagemCriarExemploDiv = document.getElementById('mensagemCriarExemplo');
+        const mensagemListarDiv = document.getElementById('mensagemListar');
+        const listaUsuariosDiv = document.getElementById('listaUsuarios');
+
+        function exibirMensagem(div, texto, tipo = 'sucesso') {
+            div.textContent = texto;
+            div.className = `mensagem ${tipo}`;
+            div.style.display = 'block';
+            setTimeout(() => { div.style.display = 'none'; }, 5000);
+        }
+
+        // Adicionar novo usuário
+        formAdicionarUsuario.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const nome = event.target.nome.value;
+            const idade = parseInt(event.target.idade.value);
+
+            if (!nome || isNaN(idade)) {
+                exibirMensagem(mensagemAdicionarDiv, 'Por favor, preencha nome e idade corretamente.', 'erro');
+                return;
+            }
+
+            try {
+                const response = await fetch('/usuarios', { // Alterado para POST /usuarios
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome, idade })
+                });
+                const resultado = await response.json();
+                if (response.ok) {
+                    exibirMensagem(mensagemAdicionarDiv, resultado.mensagem || 'Usuário adicionado com sucesso!');
+                    formAdicionarUsuario.reset();
+                    listarUsuarios(); // Atualiza a lista
+                } else {
+                    exibirMensagem(mensagemAdicionarDiv, `Erro: ${resultado.erro || response.statusText}`, 'erro');
+                }
+            } catch (error) {
+                exibirMensagem(mensagemAdicionarDiv, `Erro na requisição: ${error.message}`, 'erro');
+            }
+        });
+
+        // Criar dados de exemplo
+        document.getElementById('btnCriarDadosExemplo').addEventListener('click', async () => {
+            mensagemCriarExemploDiv.textContent = 'Processando...';
+            mensagemCriarExemploDiv.style.display = 'block';
+            try {
+                const response = await fetch('/criar-dados', { // Mantém a rota original para dados de exemplo
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                const resultado = await response.json();
+                if (response.ok) {
+                    exibirMensagem(mensagemCriarExemploDiv, `${resultado.mensagem}`);
+                    listarUsuarios(); // Atualiza a lista
+                } else {
+                    exibirMensagem(mensagemCriarExemploDiv, `Erro: ${resultado.erro || response.statusText}`, 'erro');
+                }
+            } catch (error) {
+                exibirMensagem(mensagemCriarExemploDiv, `Erro na requisição: ${error.message}`, 'erro');
+            }
+        });
+
+        // Listar usuários
+        async function listarUsuarios() {
+            listaUsuariosDiv.innerHTML = 'Carregando...';
+            mensagemListarDiv.style.display = 'none';
+            try {
+                const response = await fetch('/usuarios');
+                const resultado = await response.json();
+
+                if (response.ok) {
+                    if (resultado.erro) {
+                        listaUsuariosDiv.innerHTML = '';
+                        exibirMensagem(mensagemListarDiv, `Erro ao listar: ${resultado.erro}`, 'erro');
+                        return;
+                    }
+                    if (resultado.length === 0) {
+                        listaUsuariosDiv.innerHTML = '<p>Nenhum usuário encontrado.</p>';
+                    } else {
+                        let htmlUsuarios = '';
+                        resultado.forEach(usuario => {
+                            htmlUsuarios += `
+                                <div class="usuario">
+                                    <span><strong>Nome:</strong> ${usuario.nome}, <strong>Idade:</strong> ${usuario.idade} (ID: ${usuario._key})</span>
+                                    <button class="delete-btn" onclick="removerUsuario('${usuario._key}')">Remover</button>
+                                </div>`;
+                        });
+                        listaUsuariosDiv.innerHTML = htmlUsuarios;
+                    }
+                } else {
+                    listaUsuariosDiv.innerHTML = '';
+                    exibirMensagem(mensagemListarDiv, `Erro: ${resultado.erro || response.statusText}`, 'erro');
+                }
+            } catch (error) {
+                listaUsuariosDiv.innerHTML = '';
+                exibirMensagem(mensagemListarDiv, `Erro na requisição: ${error.message}`, 'erro');
+            }
+        }
+        document.getElementById('btnListarUsuarios').addEventListener('click', listarUsuarios);
+
+        // Remover usuário
+        async function removerUsuario(key) {
+            if (!confirm(`Tem certeza que deseja remover o usuário com ID: ${key}?`)) {
+                return;
+            }
+            try {
+                const response = await fetch(`/usuarios/${key}`, {
+                    method: 'DELETE'
+                });
+                const resultado = await response.json();
+                if (response.ok) {
+                    exibirMensagem(mensagemListarDiv, resultado.mensagem || 'Usuário removido com sucesso!');
+                    listarUsuarios(); // Atualiza a lista
+                } else {
+                    exibirMensagem(mensagemListarDiv, `Erro ao remover: ${resultado.erro || response.statusText}`, 'erro');
+                }
+            } catch (error) {
+                exibirMensagem(mensagemListarDiv, `Erro na requisição: ${error.message}`, 'erro');
+            }
+        }
+
+        // Carregar usuários ao iniciar a página
+        listarUsuarios();
+    </script>
+</body>
+</html>
